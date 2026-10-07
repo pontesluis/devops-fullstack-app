@@ -44,7 +44,7 @@ export default function Home() {
         } else {
           // Mantém a lógica antiga caso a fonte não seja 'firestore'
           const res = await fetch('/api/health/');
-          if (!res.ok) throw new Error('Falha ao ligar ao backend');
+          if (!res.ok) throw new Error('Falha ao ligar ao backend!');
           const apiData = await res.json();
           setData(apiData);
         }
