@@ -1,0 +1,51 @@
+name: Deploy to Firebase Hosting on merge
+on:
+  push:
+    branches:
+      - main
+
+# Evita dois deploys ao mesmo tempo
+concurrency: 
+  group: "firebase-deploy-production"
+  cancel-in-progress: true
+
+jobs:
+  # Primeiro trabalho: Lint e Testes
+  lint_e_testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+        working-directory: ./frontend
+      - run: npm run lint
+        working-directory: ./frontend
+      # Se tiver testes configurados na semana 5, adicione o comando aqui:
+      # - run: npm test
+      #   working-directory: ./frontend
+
+  # Segundo trabalho: Build e Deploy (só avança se o anterior passar)
+  build_and_deploy:
+    needs: lint_e_testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+        working-directory: ./frontend
+        
+      # Build com a variável exigida
+      - run: npm run build
+        working-directory: ./frontend
+        env:
+          STATIC_EXPORT: 'true'
+          
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        id: deploy_prod
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_AILAB6_98EA2 }} # Mantenha o seu secret original
+          channelId: live
+          projectId: ailab6-98ea2
+          
+      # Teste de fumaça exigido
+      - name: Teste de fumaça
+        run: curl --fail ${{ steps.deploy_prod.outputs.details_url }}
